@@ -1,4 +1,4 @@
-<!-- v6 | фикс антимеридиана (Россия), задержка fitBounds для корректного зума -->
+<!-- v7 | фикс антимеридиана (Россия), задержка fitBounds для корректного зума, maxBounds - запрет повторения карты -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -307,6 +307,8 @@ const map = L.map("map", {
   minZoom: 1,
   maxZoom: 10,
   zoomControl: true,
+  maxBounds: [[-85, -180], [85, 180]],
+  maxBoundsViscosity: 1.0,
 });
 setTimeout(() => map.fitBounds([[-70, -180], [80, 180]], { padding: [0, 0] }), 100);
 
