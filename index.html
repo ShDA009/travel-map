@@ -1,4 +1,4 @@
-<!-- v4 | Leaflet + CartoDB Positron: стиль Google Maps, зум/пан, зелёные посещённые страны -->
+<!-- v5 | fitWorld() для полного отображения, скрытие списка на мобиле, фикс Чукотки (антимеридиан) -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -151,6 +151,11 @@ header {
   font-weight: 500;
 }
 
+@media (max-width: 640px) {
+  .visited-section { display: none !important; }
+  .page { padding: 12px 12px 12px; }
+}
+
 .loading-msg {
   position: absolute;
   top: 50%; left: 50%;
@@ -299,12 +304,11 @@ if (visitedSet.size > 0) {
 // ── Карта ─────────────────────────────────────────────────────────────────────
 
 const map = L.map("map", {
-  center: [25, 15],
-  zoom: 2,
-  minZoom: 2,
+  minZoom: 1,
   maxZoom: 10,
   zoomControl: true,
 });
+map.fitWorld();
 
 // CartoDB Positron - чистый стиль, близкий к Google Maps
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
@@ -319,6 +323,18 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json")
     document.getElementById("loadMsg").style.display = "none";
 
     const geojson = topojson.feature(world, world.objects.countries);
+
+    // Фикс антимеридиана: координаты > 180° (Чукотка и др.) → нормализация
+    function fixCoords(coords) {
+      if (typeof coords[0] === "number") {
+        if (coords[0] > 180)  coords[0] -= 360;
+        if (coords[0] < -180) coords[0] += 360;
+      } else { coords.forEach(fixCoords); }
+    }
+    geojson.features.forEach(f => {
+      if (!f.geometry) return;
+      f.geometry.coordinates.forEach(fixCoords);
+    });
 
     // Прозрачный слой для всех стран (hover)
     L.geoJSON(geojson, {
