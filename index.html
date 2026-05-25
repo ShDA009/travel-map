@@ -1,0 +1,456 @@
+<!-- v12 | карта заполняет область без пустых полос (getBoundsZoom inside), центрирование + ре-фит на resize; страны задаются только через CONFIG.visited -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>Карта путешествий</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+
+<!-- ============================================================
+     КОНФИГ — редактировать только здесь
+     Коды: ISO 3166-1 alpha-2  |  Список: https://www.iban.com/country-codes
+     ============================================================ -->
+<script>
+const CONFIG = {
+  title:   "Карта путешествий",
+  visited: ["RU", "DE", "TR", "AT", "BY", "BW", "VN", "EG", "ZM", "ZW", "ID", "CY", "MX", "MZ", "NA", "PH", "ME", "LK", "ZA"],
+};
+</script>
+<!-- ============================================================ -->
+
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  height: 100%;
+  font-family: 'Roboto', Arial, sans-serif;
+  background: #fff;
+  color: #3c4043;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: 300px 1fr;
+  height: 100vh;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: #fff;
+  border-right: 1px solid #e8eaed;
+  box-shadow: 2px 0 8px rgba(0,0,0,0.04);
+  padding: 22px 20px;
+  z-index: 5;
+}
+
+.h-title {
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: #202124;
+  letter-spacing: 0.01em;
+  margin-bottom: 16px;
+}
+
+.h-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  background: #e8f0fe;
+  border: 1px solid #c2d7fb;
+  border-radius: 20px;
+  padding: 6px 16px 6px 12px;
+  font-size: 13px;
+  color: #1a73e8;
+  font-weight: 500;
+  margin-bottom: 22px;
+}
+
+.h-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: #1a73e8;
+  flex-shrink: 0;
+}
+
+/* ── Map ── */
+#map {
+  height: 100%;
+  background: #aadaff;   /* океан (под тайлами) */
+}
+.leaflet-container { background: #aadaff; }
+
+/* ── Visited list ── */
+.visited-section {
+  display: none;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+}
+
+.vs-label {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #80858d;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+
+.vs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.vs-list::-webkit-scrollbar { width: 8px; }
+.vs-list::-webkit-scrollbar-thumb {
+  background: #dadce0;
+  border-radius: 4px;
+}
+.vs-list::-webkit-scrollbar-track { background: transparent; }
+
+.ctag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #e8eaed;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #3c4043;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.ctag:hover {
+  background: #f1f3f4;
+  border-color: #dadce0;
+}
+
+.ctag-flag { font-size: 18px; line-height: 1; }
+
+/* ── Leaflet overrides ── */
+.leaflet-control-attribution {
+  font-size: 10px !important;
+  background: rgba(255,255,255,0.8) !important;
+  color: #5f6368 !important;
+}
+.leaflet-control-attribution a { color: #1a73e8 !important; }
+
+.leaflet-bar a {
+  background: #fff !important;
+  color: #3c4043 !important;
+  border-bottom-color: #e8eaed !important;
+}
+.leaflet-bar a:hover { background: #f1f3f4 !important; }
+
+.leaflet-tooltip {
+  background: #fff;
+  border: 1px solid #dadce0;
+  border-radius: 4px;
+  padding: 5px 12px;
+  font-family: 'Roboto', Arial, sans-serif;
+  font-size: 13px;
+  color: #3c4043;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  pointer-events: none;
+}
+.leaflet-tooltip::before { display: none; }
+
+.leaflet-tooltip.visited-tooltip {
+  border-left: 3px solid #1a73e8;
+  color: #1a73e8;
+  font-weight: 500;
+}
+
+.loading-msg {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  font-size: 13px;
+  color: #5f6368;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+/* ── Mobile: sidebar below map ── */
+@media (max-width: 700px) {
+  .page {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr auto;
+  }
+  .sidebar {
+    border-right: none;
+    border-top: 1px solid #e8eaed;
+    padding: 16px;
+    max-height: 42vh;
+  }
+  .h-title { margin-bottom: 10px; }
+  .h-badge { margin-bottom: 14px; }
+  .vs-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <aside class="sidebar">
+    <div class="h-title" id="hTitle"></div>
+    <div class="h-badge" id="hBadge" style="display:none">
+      <div class="h-dot"></div>
+      <span id="hCount">0</span>&nbsp;стран посещено
+    </div>
+
+    <div class="visited-section" id="visitedSection">
+      <div class="vs-label">Посещённые страны</div>
+      <div class="vs-list" id="visitedList"></div>
+    </div>
+  </aside>
+
+  <div id="map">
+    <div class="loading-msg" id="loadMsg">Загрузка карты...</div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
+<script>
+// ── Маппинги ─────────────────────────────────────────────────────────────────
+
+const A2N = {
+  AF:"4",AX:"248",AL:"8",DZ:"12",AS:"16",AD:"20",AO:"24",AI:"660",AQ:"10",
+  AG:"28",AR:"32",AM:"51",AW:"533",AU:"36",AT:"40",AZ:"31",BS:"44",BH:"48",
+  BD:"50",BB:"52",BY:"112",BE:"56",BZ:"84",BJ:"204",BM:"60",BT:"64",BO:"68",
+  BQ:"535",BA:"70",BW:"72",BV:"74",BR:"76",IO:"86",BN:"96",BG:"100",BF:"854",
+  BI:"108",CV:"132",KH:"116",CM:"120",CA:"124",KY:"136",CF:"140",TD:"148",
+  CL:"152",CN:"156",CX:"162",CC:"166",CO:"170",KM:"174",CG:"178",CD:"180",
+  CK:"184",CR:"188",CI:"384",HR:"191",CU:"192",CW:"531",CY:"196",CZ:"203",
+  DK:"208",DJ:"262",DM:"212",DO:"214",EC:"218",EG:"818",SV:"222",GQ:"226",
+  ER:"232",EE:"233",SZ:"748",ET:"231",FK:"238",FO:"234",FJ:"242",FI:"246",
+  FR:"250",GF:"254",PF:"258",TF:"260",GA:"266",GM:"270",GE:"268",DE:"276",
+  GH:"288",GI:"292",GR:"300",GL:"304",GD:"308",GP:"312",GU:"316",GT:"320",
+  GG:"831",GN:"324",GW:"624",GY:"328",HT:"332",HM:"334",VA:"336",HN:"340",
+  HK:"344",HU:"348",IS:"352",IN:"356",ID:"360",IR:"364",IQ:"368",IE:"372",
+  IM:"833",IL:"376",IT:"380",JM:"388",JP:"392",JE:"832",JO:"400",KZ:"398",
+  KE:"404",KI:"296",KP:"408",KR:"410",KW:"414",KG:"417",LA:"418",LV:"428",
+  LB:"422",LS:"426",LR:"430",LY:"434",LI:"438",LT:"440",LU:"442",MO:"446",
+  MG:"450",MW:"454",MY:"458",MV:"462",ML:"466",MT:"470",MH:"584",MQ:"474",
+  MR:"478",MU:"480",YT:"175",MX:"484",FM:"583",MD:"498",MC:"492",MN:"496",
+  ME:"499",MS:"500",MA:"504",MZ:"508",MM:"104",NA:"516",NR:"520",NP:"524",
+  NL:"528",NC:"540",NZ:"554",NI:"558",NE:"562",NG:"566",NU:"570",NF:"574",
+  MK:"807",MP:"580",NO:"578",OM:"512",PK:"586",PW:"585",PS:"275",PA:"591",
+  PG:"598",PY:"600",PE:"604",PH:"608",PN:"612",PL:"616",PT:"620",PR:"630",
+  QA:"634",RE:"638",RO:"642",RU:"643",RW:"646",BL:"652",SH:"654",KN:"659",
+  LC:"662",MF:"663",PM:"666",VC:"670",WS:"882",SM:"674",ST:"678",SA:"682",
+  SN:"686",RS:"688",SC:"690",SL:"694",SG:"702",SX:"534",SK:"703",SI:"705",
+  SB:"90",SO:"706",ZA:"710",GS:"239",SS:"728",ES:"724",LK:"144",SD:"729",
+  SR:"740",SJ:"744",SE:"752",CH:"756",SY:"760",TW:"158",TJ:"762",TZ:"834",
+  TH:"764",TL:"626",TG:"768",TK:"772",TO:"776",TT:"780",TN:"788",TR:"792",
+  TM:"795",TC:"796",TV:"798",UG:"800",UA:"804",AE:"784",GB:"826",US:"840",
+  UM:"581",UY:"858",UZ:"860",VU:"548",VE:"862",VN:"704",VG:"92",VI:"850",
+  WF:"876",EH:"732",YE:"887",ZM:"894",ZW:"716",XK:"383"
+};
+
+const N2N = {
+  "4":"Afghanistan","8":"Albania","12":"Algeria","20":"Andorra","24":"Angola",
+  "28":"Antigua and Barbuda","32":"Argentina","36":"Australia","40":"Austria",
+  "31":"Azerbaijan","44":"Bahamas","48":"Bahrain","50":"Bangladesh","52":"Barbados",
+  "112":"Belarus","56":"Belgium","84":"Belize","204":"Benin","64":"Bhutan","68":"Bolivia",
+  "70":"Bosnia and Herzegovina","72":"Botswana","76":"Brazil","96":"Brunei","100":"Bulgaria",
+  "854":"Burkina Faso","108":"Burundi","132":"Cape Verde","116":"Cambodia","120":"Cameroon",
+  "124":"Canada","140":"Central African Rep.","148":"Chad","152":"Chile","156":"China",
+  "170":"Colombia","174":"Comoros","178":"Congo","180":"DR Congo","188":"Costa Rica",
+  "384":"Ivory Coast","191":"Croatia","192":"Cuba","196":"Cyprus","203":"Czech Republic",
+  "208":"Denmark","262":"Djibouti","214":"Dominican Republic","218":"Ecuador",
+  "818":"Egypt","222":"El Salvador","226":"Equatorial Guinea","232":"Eritrea",
+  "233":"Estonia","748":"Eswatini","231":"Ethiopia","242":"Fiji","246":"Finland",
+  "250":"France","266":"Gabon","270":"Gambia","268":"Georgia","276":"Germany",
+  "288":"Ghana","300":"Greece","304":"Greenland","308":"Grenada","320":"Guatemala",
+  "324":"Guinea","624":"Guinea-Bissau","328":"Guyana","332":"Haiti","340":"Honduras",
+  "348":"Hungary","352":"Iceland","356":"India","360":"Indonesia","364":"Iran",
+  "368":"Iraq","372":"Ireland","376":"Israel","380":"Italy","388":"Jamaica",
+  "392":"Japan","400":"Jordan","398":"Kazakhstan","404":"Kenya","408":"North Korea",
+  "410":"South Korea","414":"Kuwait","417":"Kyrgyzstan","418":"Laos","428":"Latvia",
+  "422":"Lebanon","426":"Lesotho","430":"Liberia","434":"Libya","440":"Lithuania",
+  "442":"Luxembourg","450":"Madagascar","454":"Malawi","458":"Malaysia","462":"Maldives",
+  "466":"Mali","470":"Malta","478":"Mauritania","480":"Mauritius","484":"Mexico",
+  "498":"Moldova","496":"Mongolia","499":"Montenegro","504":"Morocco","508":"Mozambique",
+  "104":"Myanmar","516":"Namibia","524":"Nepal","528":"Netherlands","554":"New Zealand",
+  "558":"Nicaragua","562":"Niger","566":"Nigeria","807":"North Macedonia","578":"Norway",
+  "512":"Oman","586":"Pakistan","275":"Palestine","591":"Panama","598":"Papua New Guinea",
+  "600":"Paraguay","604":"Peru","608":"Philippines","616":"Poland","620":"Portugal",
+  "634":"Qatar","642":"Romania","643":"Russia","646":"Rwanda","682":"Saudi Arabia",
+  "686":"Senegal","688":"Serbia","690":"Seychelles","694":"Sierra Leone","702":"Singapore",
+  "703":"Slovakia","705":"Slovenia","90":"Solomon Islands","706":"Somalia",
+  "710":"South Africa","728":"South Sudan","724":"Spain","144":"Sri Lanka",
+  "729":"Sudan","740":"Suriname","752":"Sweden","756":"Switzerland","760":"Syria",
+  "762":"Tajikistan","834":"Tanzania","764":"Thailand","626":"Timor-Leste","768":"Togo",
+  "780":"Trinidad and Tobago","788":"Tunisia","792":"Turkey","795":"Turkmenistan",
+  "800":"Uganda","804":"Ukraine","784":"United Arab Emirates","826":"United Kingdom",
+  "840":"United States","858":"Uruguay","860":"Uzbekistan","548":"Vanuatu",
+  "862":"Venezuela","704":"Vietnam","887":"Yemen","894":"Zambia","716":"Zimbabwe",
+  "732":"Western Sahara","158":"Taiwan","383":"Kosovo","51":"Armenia"
+};
+
+const flag = code =>
+  [...code.toUpperCase()].map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join("");
+
+// ── DOM ───────────────────────────────────────────────────────────────────────
+
+document.getElementById("hTitle").textContent = CONFIG.title;
+
+const visitedSet = new Set(
+  CONFIG.visited.map(c => A2N[c.toUpperCase()]).filter(Boolean)
+);
+
+if (visitedSet.size > 0) {
+  const badge = document.getElementById("hBadge");
+  badge.style.display = "flex";
+  document.getElementById("hCount").textContent = visitedSet.size;
+
+  const sec  = document.getElementById("visitedSection");
+  const list = document.getElementById("visitedList");
+  sec.style.display = "flex";
+
+  CONFIG.visited.forEach(code => {
+    const num  = A2N[code.toUpperCase()];
+    const name = num ? (N2N[num] || code) : code;
+    const tag  = document.createElement("div");
+    tag.className = "ctag";
+    tag.innerHTML = `<span class="ctag-flag">${flag(code)}</span>${name}`;
+    list.appendChild(tag);
+  });
+}
+
+// ── Карта ─────────────────────────────────────────────────────────────────────
+
+const map = L.map("map", {
+  minZoom: 2,
+  maxZoom: 8,
+  zoomControl: true,
+  zoomSnap: 0.25,
+  worldCopyJump: false,
+  maxBounds: [[-85, -180], [85, 180]],
+  maxBoundsViscosity: 1.0,
+  attributionControl: false,
+});
+
+// Заполнить всю область карты, центр по середине мира; вписываем по большей стороне
+function fitWorld() {
+  // getBoundsZoom(..., inside=true): зум, при котором мир ЗАПОЛНЯЕТ контейнер
+  // (по меньшей стороне), без пустых полос; центр — середина мира
+  const z = map.getBoundsZoom([[-85, -180], [85, 180]], true);
+  map.setView([30, 0], z, { animate: false });
+}
+setTimeout(fitWorld, 100);
+window.addEventListener("resize", () => setTimeout(fitWorld, 100));
+
+L.control.attribution({ prefix: false })
+  .addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>')
+  .addTo(map);
+
+// Светлая подложка с подписями стран/городов — стиль «как Google Maps»
+L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+  subdomains: "abcd",
+  maxZoom: 19,
+  noWrap: true,
+  bounds: [[-85, -180], [85, 180]],
+}).addTo(map);
+
+const PALETTE = {
+  visited:     "#34d399",   // посещённые (светло-зелёный)
+  visitedLine: "#059669",
+};
+
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json")
+  .then(r => r.json())
+  .then(world => {
+    document.getElementById("loadMsg").style.display = "none";
+
+    const geojson = topojson.feature(world, world.objects.countries);
+
+    // Фикс антимеридиана: нормализация каждой точки кольца относительно предыдущей
+    function fixRing(ring) {
+      for (let i = 1; i < ring.length; i++) {
+        while (ring[i][0] - ring[i-1][0] > 180)  ring[i][0] -= 360;
+        while (ring[i-1][0] - ring[i][0] > 180)  ring[i][0] += 360;
+      }
+    }
+    geojson.features.forEach(f => {
+      if (!f.geometry) return;
+      const type = f.geometry.type;
+      const coords = f.geometry.coordinates;
+      if (type === "Polygon")      coords.forEach(fixRing);
+      if (type === "MultiPolygon") coords.forEach(poly => poly.forEach(fixRing));
+    });
+
+    // Прозрачный слой всех стран — только для hover/tooltip (тайлы видны под ним)
+    L.geoJSON(geojson, {
+      style: {
+        fillColor: "transparent",
+        fillOpacity: 0,
+        color: "transparent",
+        weight: 0,
+      },
+      onEachFeature(feature, layer) {
+        const id   = String(feature.id);
+        const name = N2N[id];
+        if (!name) return;
+
+        const isVisited = visitedSet.has(id);
+
+        layer.bindTooltip(
+          isVisited ? "✓ " + name : name,
+          { sticky: true, className: isVisited ? "visited-tooltip" : "" }
+        );
+
+        layer.on({
+          mouseover(e) {
+            if (!isVisited) {
+              e.target.setStyle({ fillColor: "#1a73e8", fillOpacity: 0.18, color: "#1a73e8", weight: 1 });
+              e.target.bringToFront();
+            }
+          },
+          mouseout(e) {
+            if (!isVisited) {
+              e.target.setStyle({ fillColor: "transparent", fillOpacity: 0, color: "transparent", weight: 0 });
+            }
+          },
+        });
+      },
+    }).addTo(map);
+
+    // Зелёный слой только для посещённых стран
+    const visitedFeatures = {
+      type: "FeatureCollection",
+      features: geojson.features.filter(f => visitedSet.has(String(f.id))),
+    };
+
+    L.geoJSON(visitedFeatures, {
+      style: {
+        fillColor: PALETTE.visited,
+        fillOpacity: 0.4,
+        color: PALETTE.visitedLine,
+        weight: 1.5,
+      },
+    }).addTo(map);
+  })
+  .catch(() => {
+    document.getElementById("loadMsg").textContent = "Ошибка загрузки. Проверьте соединение.";
+  });
+</script>
+</body>
+</html>
