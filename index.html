@@ -4,157 +4,226 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Карта путешествий</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
 
 <!-- ============================================================
-     КОНФИГ - редактировать только здесь
+     КОНФИГ — редактировать только здесь
      Коды стран: ISO 3166-1 alpha-2 (двухбуквенные)
-     Примеры: RU=Россия, DE=Германия, FR=Франция, JP=Япония
+     Примеры: RU DE FR JP US GB IT ES — и т.д.
      Полный список: https://www.iban.com/country-codes
      ============================================================ -->
 <script>
 const CONFIG = {
-  title:        "Мои путешествия",
-  visited:      ["RU", "DE", "FR", "JP", "US", "TR", "TH"],
-  visitedColor: "#6ee7b7",   // цвет посещённых стран
-  hoverColor:   "#34d399",   // цвет при наведении
-  landColor:    "#d1d5db",   // цвет непосещённых стран
-  oceanColor:   "#bfdbfe",   // цвет океана
+  title:   "Карта путешествий",
+  visited: ["RU", "DE", "FR", "JP", "US", "TR", "TH"],
 };
 </script>
 <!-- ============================================================ -->
 
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:           #07090f;
+  --ocean:        #0a1520;
+  --land:         #1a2030;
+  --land-hover:   #252d40;
+  --visited:      #c9a84c;
+  --visited-hov:  #e2c070;
+  --grat:         rgba(255,255,255,0.032);
+  --border:       rgba(201,168,76,0.18);
+  --border-dim:   rgba(255,255,255,0.07);
+  --text:         #d4c9b0;
+  --text-dim:     #3a4050;
+  --accent:       #c9a84c;
+}
 
-  body {
-    font-family: 'Georgia', serif;
-    background: #0f172a;
-    color: #f8fafc;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 32px 16px;
-  }
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  h1 {
-    font-size: 1.6rem;
-    font-weight: 400;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: #e2e8f0;
-    margin-bottom: 6px;
-  }
+body {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  background: var(--bg);
+  background-image: radial-gradient(rgba(255,255,255,0.028) 1px, transparent 1px);
+  background-size: 26px 26px;
+  color: var(--text);
+  min-height: 100vh;
+  padding: 52px 24px 72px;
+}
 
-  .subtitle {
-    font-size: 0.82rem;
-    color: #64748b;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    margin-bottom: 28px;
-  }
+.container { max-width: 1140px; margin: 0 auto; }
 
-  .counter {
-    display: inline-block;
-    color: #6ee7b7;
-    font-variant-numeric: tabular-nums;
-  }
+/* ── Header ── */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  padding-bottom: 22px;
+  margin-bottom: 30px;
+  border-bottom: 1px solid var(--border-dim);
+}
 
-  .map-wrap {
-    width: 100%;
-    max-width: 1100px;
-    border: 1px solid #1e293b;
-    border-radius: 4px;
-    overflow: hidden;
-    background: #bfdbfe;
-    position: relative;
-  }
+.title {
+  font-size: 0.78rem;
+  font-weight: 300;
+  letter-spacing: 0.38em;
+  text-transform: uppercase;
+  color: rgba(212,201,176,0.55);
+}
 
-  svg {
-    display: block;
-    width: 100%;
-    aspect-ratio: 960 / 500;
-  }
+.stats { text-align: right; line-height: 1; }
 
-  .country {
-    cursor: default;
-    transition: fill 0.15s;
-    stroke: #fff;
-    stroke-width: 0.4;
-  }
+.stats-number {
+  font-size: 4rem;
+  font-weight: 300;
+  color: var(--accent);
+  letter-spacing: -0.02em;
+  line-height: 0.9;
+}
 
-  .tooltip {
-    position: absolute;
-    bottom: 14px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(15, 23, 42, 0.88);
-    color: #f1f5f9;
-    padding: 5px 16px;
-    border-radius: 3px;
-    font-size: 13px;
-    font-family: 'Georgia', serif;
-    letter-spacing: 0.04em;
-    pointer-events: none;
-    white-space: nowrap;
-    display: none;
-    border-left: 3px solid #6ee7b7;
-  }
+.stats-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-top: 8px;
+}
 
-  .tooltip.visited-tip {
-    border-left-color: #6ee7b7;
-  }
+/* ── Map ── */
+.map-outer {
+  position: relative;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(201,168,76,0.25) 0%, transparent 40%, transparent 60%, rgba(201,168,76,0.15) 100%);
+}
 
-  .visited-list {
-    width: 100%;
-    max-width: 1100px;
-    margin-top: 20px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
+.map-wrap {
+  position: relative;
+  background: var(--ocean);
+  overflow: hidden;
+}
 
-  .tag {
-    padding: 4px 12px;
-    border: 1px solid #1e3a2f;
-    border-radius: 2px;
-    font-size: 12px;
-    color: #6ee7b7;
-    background: #0d2118;
-    letter-spacing: 0.06em;
-    font-family: 'Georgia', serif;
-  }
+/* corner marks */
+.corner {
+  position: absolute;
+  width: 16px; height: 16px;
+  border-color: var(--accent);
+  border-style: solid;
+  opacity: 0.55;
+  z-index: 3;
+  pointer-events: none;
+}
+.corner-tl { top: 6px; left: 6px;  border-width: 1px 0 0 1px; }
+.corner-tr { top: 6px; right: 6px; border-width: 1px 1px 0 0; }
+.corner-bl { bottom: 6px; left: 6px;  border-width: 0 0 1px 1px; }
+.corner-br { bottom: 6px; right: 6px; border-width: 0 1px 1px 0; }
 
-  .loading {
-    padding: 80px;
-    text-align: center;
-    color: #475569;
-    font-size: 14px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-  }
+svg { display: block; width: 100%; aspect-ratio: 960/500; }
+
+.country { cursor: default; transition: fill 0.18s; }
+
+/* ── Tooltip ── */
+.tooltip {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(7,9,15,0.93);
+  border: 1px solid var(--border-dim);
+  color: rgba(212,201,176,0.7);
+  padding: 6px 20px;
+  font-size: 12px;
+  font-weight: 300;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  pointer-events: none;
+  white-space: nowrap;
+  display: none;
+  backdrop-filter: blur(4px);
+}
+.tooltip.is-visited {
+  border-color: rgba(201,168,76,0.35);
+  color: var(--accent);
+}
+
+/* ── Countries list ── */
+.countries-section {
+  margin-top: 30px;
+  display: none;
+}
+
+.section-label {
+  font-size: 0.58rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+}
+
+.countries-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.ctag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px 5px 10px;
+  border: 1px solid var(--border-dim);
+  font-size: 13.5px;
+  font-weight: 300;
+  letter-spacing: 0.05em;
+  color: rgba(212,201,176,0.5);
+  transition: border-color 0.2s, color 0.2s;
+  cursor: default;
+}
+.ctag:hover { border-color: var(--border); color: var(--accent); }
+.ctag-flag { font-size: 17px; line-height: 1; }
+
+/* ── Loading ── */
+.loading {
+  display: flex; align-items: center; justify-content: center;
+  padding: 80px;
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
 </style>
 </head>
 <body>
+<div class="container">
 
-<h1 id="map-title"></h1>
-<div class="subtitle">
-  Посещено: <span class="counter" id="count">0</span> стран
+  <header>
+    <div class="title" id="map-title"></div>
+    <div class="stats">
+      <div class="stats-number" id="count">0</div>
+      <div class="stats-label">стран посещено</div>
+    </div>
+  </header>
+
+  <div class="map-outer">
+    <div class="map-wrap" id="map-wrap">
+      <div class="corner corner-tl"></div>
+      <div class="corner corner-tr"></div>
+      <div class="corner corner-bl"></div>
+      <div class="corner corner-br"></div>
+      <div class="loading" id="loading">Загрузка карты...</div>
+      <svg id="map" viewBox="0 0 960 500" style="display:none"></svg>
+      <div class="tooltip" id="tooltip"></div>
+    </div>
+  </div>
+
+  <div class="countries-section" id="countries-section">
+    <div class="section-label">Посещённые страны</div>
+    <div class="countries-list" id="countries-list"></div>
+  </div>
+
 </div>
-
-<div class="map-wrap" id="map-wrap">
-  <div class="loading" id="loading">Загрузка карты...</div>
-  <svg id="map" style="display:none" viewBox="0 0 960 500"></svg>
-  <div class="tooltip" id="tooltip"></div>
-</div>
-
-<div class="visited-list" id="visited-list"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/topojson/3.0.2/topojson.min.js"></script>
 <script>
-// Маппинг ISO alpha-2 -> ISO numeric (используется в world-atlas)
-const ALPHA2_TO_NUMERIC = {
+// ISO alpha-2 → ISO numeric
+const A2N = {
   AF:"4",AX:"248",AL:"8",DZ:"12",AS:"16",AD:"20",AO:"24",AI:"660",AQ:"10",
   AG:"28",AR:"32",AM:"51",AW:"533",AU:"36",AT:"40",AZ:"31",BS:"44",BH:"48",
   BD:"50",BB:"52",BY:"112",BE:"56",BZ:"84",BJ:"204",BM:"60",BT:"64",BO:"68",
@@ -185,46 +254,43 @@ const ALPHA2_TO_NUMERIC = {
   TH:"764",TL:"626",TG:"768",TK:"772",TO:"776",TT:"780",TN:"788",TR:"792",
   TM:"795",TC:"796",TV:"798",UG:"800",UA:"804",AE:"784",GB:"826",US:"840",
   UM:"581",UY:"858",UZ:"860",VU:"548",VE:"862",VN:"704",VG:"92",VI:"850",
-  WF:"876",EH:"732",YE:"887",ZM:"894",ZW:"716",KX:"412",XK:"383"
+  WF:"876",EH:"732",YE:"887",ZM:"894",ZW:"716",XK:"383"
 };
 
-// Маппинг numeric -> название (для тултипа)
-const NUMERIC_TO_NAME = {
+// ISO numeric → название
+const N2N = {
   "4":"Afghanistan","8":"Albania","12":"Algeria","16":"American Samoa","20":"Andorra",
   "24":"Angola","28":"Antigua and Barbuda","32":"Argentina","36":"Australia","40":"Austria",
   "31":"Azerbaijan","44":"Bahamas","48":"Bahrain","50":"Bangladesh","52":"Barbados",
-  "112":"Belarus","56":"Belgium","84":"Belize","204":"Benin","64":"Bhutan",
-  "68":"Bolivia","70":"Bosnia and Herzegovina","72":"Botswana","76":"Brazil",
-  "96":"Brunei","100":"Bulgaria","854":"Burkina Faso","108":"Burundi","132":"Cape Verde",
-  "116":"Cambodia","120":"Cameroon","124":"Canada","140":"Central African Republic",
-  "148":"Chad","152":"Chile","156":"China","170":"Colombia","174":"Comoros",
-  "178":"Congo","180":"DR Congo","188":"Costa Rica","384":"Ivory Coast","191":"Croatia",
-  "192":"Cuba","196":"Cyprus","203":"Czech Republic","208":"Denmark","262":"Djibouti",
-  "212":"Dominica","214":"Dominican Republic","218":"Ecuador","818":"Egypt",
-  "222":"El Salvador","226":"Equatorial Guinea","232":"Eritrea","233":"Estonia",
-  "748":"Eswatini","231":"Ethiopia","242":"Fiji","246":"Finland","250":"France",
-  "266":"Gabon","270":"Gambia","268":"Georgia","276":"Germany","288":"Ghana",
-  "300":"Greece","308":"Grenada","320":"Guatemala","324":"Guinea","624":"Guinea-Bissau",
-  "328":"Guyana","332":"Haiti","336":"Vatican","340":"Honduras","348":"Hungary",
-  "352":"Iceland","356":"India","360":"Indonesia","364":"Iran","368":"Iraq",
-  "372":"Ireland","376":"Israel","380":"Italy","388":"Jamaica","392":"Japan",
-  "400":"Jordan","398":"Kazakhstan","404":"Kenya","296":"Kiribati","408":"North Korea",
-  "410":"South Korea","414":"Kuwait","417":"Kyrgyzstan","418":"Laos","428":"Latvia",
-  "422":"Lebanon","426":"Lesotho","430":"Liberia","434":"Libya","438":"Liechtenstein",
-  "440":"Lithuania","442":"Luxembourg","450":"Madagascar","454":"Malawi","458":"Malaysia",
-  "462":"Maldives","466":"Mali","470":"Malta","584":"Marshall Islands","478":"Mauritania",
-  "480":"Mauritius","484":"Mexico","583":"Micronesia","498":"Moldova","492":"Monaco",
-  "496":"Mongolia","499":"Montenegro","504":"Morocco","508":"Mozambique","104":"Myanmar",
-  "516":"Namibia","520":"Nauru","524":"Nepal","528":"Netherlands","554":"New Zealand",
-  "558":"Nicaragua","562":"Niger","566":"Nigeria","807":"North Macedonia","578":"Norway",
-  "512":"Oman","586":"Pakistan","585":"Palau","275":"Palestine","591":"Panama",
-  "598":"Papua New Guinea","600":"Paraguay","604":"Peru","608":"Philippines",
-  "616":"Poland","620":"Portugal","634":"Qatar","642":"Romania","643":"Russia",
-  "646":"Rwanda","659":"Saint Kitts and Nevis","662":"Saint Lucia",
-  "670":"Saint Vincent and the Grenadines","882":"Samoa","674":"San Marino",
-  "678":"São Tomé and Príncipe","682":"Saudi Arabia","686":"Senegal","688":"Serbia",
-  "690":"Seychelles","694":"Sierra Leone","702":"Singapore","703":"Slovakia",
-  "705":"Slovenia","90":"Solomon Islands","706":"Somalia","710":"South Africa",
+  "112":"Belarus","56":"Belgium","84":"Belize","204":"Benin","64":"Bhutan","68":"Bolivia",
+  "70":"Bosnia and Herzegovina","72":"Botswana","76":"Brazil","96":"Brunei","100":"Bulgaria",
+  "854":"Burkina Faso","108":"Burundi","132":"Cape Verde","116":"Cambodia","120":"Cameroon",
+  "124":"Canada","140":"Central African Republic","148":"Chad","152":"Chile","156":"China",
+  "170":"Colombia","174":"Comoros","178":"Congo","180":"DR Congo","188":"Costa Rica",
+  "384":"Ivory Coast","191":"Croatia","192":"Cuba","196":"Cyprus","203":"Czech Republic",
+  "208":"Denmark","262":"Djibouti","212":"Dominica","214":"Dominican Republic","218":"Ecuador",
+  "818":"Egypt","222":"El Salvador","226":"Equatorial Guinea","232":"Eritrea","233":"Estonia",
+  "748":"Eswatini","231":"Ethiopia","242":"Fiji","246":"Finland","250":"France","266":"Gabon",
+  "270":"Gambia","268":"Georgia","276":"Germany","288":"Ghana","300":"Greece","308":"Grenada",
+  "320":"Guatemala","324":"Guinea","624":"Guinea-Bissau","328":"Guyana","332":"Haiti",
+  "336":"Vatican City","340":"Honduras","348":"Hungary","352":"Iceland","356":"India",
+  "360":"Indonesia","364":"Iran","368":"Iraq","372":"Ireland","376":"Israel","380":"Italy",
+  "388":"Jamaica","392":"Japan","400":"Jordan","398":"Kazakhstan","404":"Kenya",
+  "296":"Kiribati","408":"North Korea","410":"South Korea","414":"Kuwait","417":"Kyrgyzstan",
+  "418":"Laos","428":"Latvia","422":"Lebanon","426":"Lesotho","430":"Liberia","434":"Libya",
+  "438":"Liechtenstein","440":"Lithuania","442":"Luxembourg","450":"Madagascar","454":"Malawi",
+  "458":"Malaysia","462":"Maldives","466":"Mali","470":"Malta","584":"Marshall Islands",
+  "478":"Mauritania","480":"Mauritius","484":"Mexico","583":"Micronesia","498":"Moldova",
+  "492":"Monaco","496":"Mongolia","499":"Montenegro","504":"Morocco","508":"Mozambique",
+  "104":"Myanmar","516":"Namibia","520":"Nauru","524":"Nepal","528":"Netherlands",
+  "554":"New Zealand","558":"Nicaragua","562":"Niger","566":"Nigeria","807":"North Macedonia",
+  "578":"Norway","512":"Oman","586":"Pakistan","585":"Palau","275":"Palestine","591":"Panama",
+  "598":"Papua New Guinea","600":"Paraguay","604":"Peru","608":"Philippines","616":"Poland",
+  "620":"Portugal","634":"Qatar","642":"Romania","643":"Russia","646":"Rwanda",
+  "659":"Saint Kitts and Nevis","662":"Saint Lucia","670":"Saint Vincent and the Grenadines",
+  "882":"Samoa","674":"San Marino","678":"Sao Tome and Principe","682":"Saudi Arabia",
+  "686":"Senegal","688":"Serbia","690":"Seychelles","694":"Sierra Leone","702":"Singapore",
+  "703":"Slovakia","705":"Slovenia","90":"Solomon Islands","706":"Somalia","710":"South Africa",
   "728":"South Sudan","724":"Spain","144":"Sri Lanka","729":"Sudan","740":"Suriname",
   "752":"Sweden","756":"Switzerland","760":"Syria","762":"Tajikistan","834":"Tanzania",
   "764":"Thailand","626":"Timor-Leste","768":"Togo","776":"Tonga","780":"Trinidad and Tobago",
@@ -232,77 +298,100 @@ const NUMERIC_TO_NAME = {
   "804":"Ukraine","784":"United Arab Emirates","826":"United Kingdom","840":"United States",
   "858":"Uruguay","860":"Uzbekistan","548":"Vanuatu","862":"Venezuela","704":"Vietnam",
   "887":"Yemen","894":"Zambia","716":"Zimbabwe","732":"Western Sahara","158":"Taiwan",
-  "383":"Kosovo","412":"Kosovo"
+  "383":"Kosovo"
 };
+
+// Флаг из alpha-2 кода
+const flag = code =>
+  [...code.toUpperCase()].map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0) - 65)).join('');
 
 // Инициализация
 document.getElementById("map-title").textContent = CONFIG.title;
-document.querySelector(".map-wrap").style.background = CONFIG.oceanColor;
 
 const visitedSet = new Set(
-  CONFIG.visited.map(code => ALPHA2_TO_NUMERIC[code.toUpperCase()]).filter(Boolean)
+  CONFIG.visited.map(c => A2N[c.toUpperCase()]).filter(Boolean)
 );
 
 document.getElementById("count").textContent = visitedSet.size;
 
-// Список стран под картой
-const listEl = document.getElementById("visited-list");
-CONFIG.visited.forEach(code => {
-  const num = ALPHA2_TO_NUMERIC[code.toUpperCase()];
-  const name = num ? (NUMERIC_TO_NAME[num] || code) : code;
-  const tag = document.createElement("div");
-  tag.className = "tag";
-  tag.textContent = name;
-  listEl.appendChild(tag);
-});
+// Список стран
+if (visitedSet.size > 0) {
+  const section = document.getElementById("countries-section");
+  const list    = document.getElementById("countries-list");
+  section.style.display = "block";
+
+  CONFIG.visited.forEach(code => {
+    const upper  = code.toUpperCase();
+    const num    = A2N[upper];
+    const name   = num ? (N2N[num] || code) : code;
+    const tag    = document.createElement("div");
+    tag.className = "ctag";
+    tag.innerHTML = `<span class="ctag-flag">${flag(upper)}</span>${name}`;
+    list.appendChild(tag);
+  });
+}
 
 // Карта
-fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json")
+fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json")
   .then(r => r.json())
   .then(world => {
     document.getElementById("loading").style.display = "none";
     const svgEl = document.getElementById("map");
     svgEl.style.display = "block";
 
-    const svg = d3.select("#map");
-    const tooltip = document.getElementById("tooltip");
+    const svg  = d3.select("#map");
+    const tip  = document.getElementById("tooltip");
 
-    const projection = d3.geoNaturalEarth1()
-      .scale(153)
-      .translate([480, 250]);
+    const proj = d3.geoNaturalEarth1().scale(153).translate([480, 250]);
+    const path = d3.geoPath().projection(proj);
 
-    const path = d3.geoPath().projection(projection);
+    // Океан
+    svg.append("rect").attr("width", 960).attr("height", 500)
+       .attr("fill", "#0a1520");
+
+    // Сетка меридианов
+    const grat = d3.geoGraticule()();
+    svg.append("path").datum(grat).attr("d", path)
+       .attr("fill", "none")
+       .attr("stroke", "rgba(255,255,255,0.032)")
+       .attr("stroke-width", 0.5);
+
+    // Страны
     const features = topojson.feature(world, world.objects.countries).features;
 
-    svg.append("rect")
-      .attr("width", 960).attr("height", 500)
-      .attr("fill", CONFIG.oceanColor);
-
-    svg.selectAll("path")
+    svg.selectAll("path.country")
       .data(features)
       .join("path")
       .attr("class", "country")
       .attr("d", path)
-      .attr("fill", d => visitedSet.has(String(d.id)) ? CONFIG.visitedColor : CONFIG.landColor)
+      .attr("fill",   d => visitedSet.has(String(d.id)) ? "#c9a84c" : "#1a2030")
+      .attr("stroke", d => visitedSet.has(String(d.id)) ? "rgba(201,168,76,0.35)" : "rgba(255,255,255,0.06)")
+      .attr("stroke-width", 0.4)
+      .style("opacity", 0)
+      .transition().duration(500).delay((_, i) => i * 2)
+      .style("opacity", 1);
+
+    // Hover
+    svg.selectAll("path.country")
       .on("mouseover", function(event, d) {
         const id = String(d.id);
-        const isVisited = visitedSet.has(id);
-        d3.select(this).attr("fill", isVisited ? CONFIG.hoverColor : "#b0b6be");
-        const name = NUMERIC_TO_NAME[id] || "";
+        const iv = visitedSet.has(id);
+        d3.select(this).attr("fill", iv ? "#e2c070" : "#252d40");
+        const name = N2N[id];
         if (name) {
-          tooltip.textContent = isVisited ? "✓ " + name : name;
-          tooltip.className = "tooltip" + (isVisited ? " visited-tip" : "");
-          tooltip.style.display = "block";
+          tip.textContent = iv ? "✦ " + name : name;
+          tip.className   = "tooltip" + (iv ? " is-visited" : "");
+          tip.style.display = "block";
         }
       })
       .on("mouseout", function(event, d) {
         const id = String(d.id);
-        d3.select(this).attr("fill", visitedSet.has(id) ? CONFIG.visitedColor : CONFIG.landColor);
-        tooltip.style.display = "none";
+        d3.select(this).attr("fill", visitedSet.has(id) ? "#c9a84c" : "#1a2030");
+        tip.style.display = "none";
       });
   })
   .catch(() => {
-    document.getElementById("loading").textContent = "Ошибка загрузки карты. Проверьте соединение.";
+    document.getElementById("loading").textContent = "Ошибка загрузки. Проверьте соединение.";
   });
 </script>
 </body>
