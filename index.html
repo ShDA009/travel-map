@@ -1,4 +1,4 @@
-<!-- v5 | fitWorld() для полного отображения, скрытие списка на мобиле, фикс Чукотки (антимеридиан) -->
+<!-- v6 | фикс антимеридиана (Россия), задержка fitBounds для корректного зума -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -308,7 +308,7 @@ const map = L.map("map", {
   maxZoom: 10,
   zoomControl: true,
 });
-map.fitWorld();
+setTimeout(() => map.fitBounds([[-70, -180], [80, 180]], { padding: [0, 0] }), 100);
 
 // CartoDB Positron - чистый стиль, близкий к Google Maps
 L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
@@ -324,16 +324,19 @@ fetch("https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json")
 
     const geojson = topojson.feature(world, world.objects.countries);
 
-    // Фикс антимеридиана: координаты > 180° (Чукотка и др.) → нормализация
-    function fixCoords(coords) {
-      if (typeof coords[0] === "number") {
-        if (coords[0] > 180)  coords[0] -= 360;
-        if (coords[0] < -180) coords[0] += 360;
-      } else { coords.forEach(fixCoords); }
+    // Фикс антимеридиана: нормализация каждой точки кольца относительно предыдущей
+    function fixRing(ring) {
+      for (let i = 1; i < ring.length; i++) {
+        while (ring[i][0] - ring[i-1][0] > 180)  ring[i][0] -= 360;
+        while (ring[i-1][0] - ring[i][0] > 180)  ring[i][0] += 360;
+      }
     }
     geojson.features.forEach(f => {
       if (!f.geometry) return;
-      f.geometry.coordinates.forEach(fixCoords);
+      const type = f.geometry.type;
+      const coords = f.geometry.coordinates;
+      if (type === "Polygon")      coords.forEach(fixRing);
+      if (type === "MultiPolygon") coords.forEach(poly => poly.forEach(fixRing));
     });
 
     // Прозрачный слой для всех стран (hover)
