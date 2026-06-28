@@ -1,0 +1,131 @@
+// ============================================================
+// КОНФИГ — редактировать только здесь
+// visited: ISO 3166-1 alpha-2  |  https://www.iban.com/country-codes
+// region:  точное название из GeoJSON регионов РФ
+// ============================================================
+const MAP_CONFIG = {
+
+  // ── Посещённые страны ─────────────────────────────────────
+  visited: ["RU", "DE", "TR", "AT", "BY", "BW", "VN", "EG", "ZM", "ZW", "ID", "CY", "MX", "MZ", "NA", "PH", "ME", "LK", "ZA"],
+
+  // ── Посещённые города ─────────────────────────────────────
+  cities: [
+    { name: "Москва",            lat: 55.7558, lng: 37.6173, region: "Москва" },
+    { name: "Санкт-Петербург",   lat: 59.9311, lng: 30.3609, region: "Санкт-Петербург" },
+    { name: "Балашиха",          lat: 55.7960, lng: 37.9381, region: "Московская область" },
+    { name: "Ярославль",         lat: 57.6261, lng: 39.8845, region: "Ярославская область" },
+    { name: "Владимир",          lat: 56.1291, lng: 40.4068, region: "Владимирская область" },
+    { name: "Мурманск",          lat: 68.9585, lng: 33.0827, region: "Мурманская область" },
+    { name: "Череповец",         lat: 59.1282, lng: 37.9061, region: "Вологодская область" },
+    { name: "Великий Устюг",     lat: 60.7626, lng: 46.3078, region: "Вологодская область" },
+    { name: "Вологда",           lat: 59.2239, lng: 39.8839, region: "Вологодская область" },
+    { name: "Петрозаводск",      lat: 61.7849, lng: 34.3469, region: "Республика Карелия" },
+    { name: "Сочи",              lat: 43.6028, lng: 39.7342, region: "Краснодарский край" },
+    { name: "Дербент",           lat: 42.0724, lng: 48.2879, region: "Республика Дагестан" },
+    { name: "Махачкала",         lat: 42.9849, lng: 47.5047, region: "Республика Дагестан" },
+    { name: "Каспийск",          lat: 42.8869, lng: 47.6326, region: "Республика Дагестан" },
+    { name: "Нижний Новгород",   lat: 56.3269, lng: 44.0059, region: "Нижегородская область" },
+    { name: "Казань",            lat: 55.7887, lng: 49.1221, region: "Татарстан" },
+    { name: "Ульяновск",         lat: 54.3282, lng: 48.3866, region: "Ульяновская область" },
+    { name: "Чебоксары",         lat: 56.1439, lng: 47.2489, region: "Чувашская республика" },
+    { name: "Красноярск",        lat: 56.0153, lng: 92.8932, region: "Красноярский край" },
+    { name: "Новокузнецк",       lat: 53.7557, lng: 87.1099, region: "Кемеровская область" },
+    { name: "Шерегеш",           lat: 52.9167, lng: 87.9833, region: "Кемеровская область" },
+    { name: "Приисковый",        lat: 53.1667, lng: 89.8333, region: "Республика Хакасия" },
+    { name: "Красная Поляна",    lat: 43.6780, lng: 40.2010, region: "Краснодарский край" },
+    { name: "Архыз",             lat: 43.5500, lng: 41.2833, region: "Карачаево-Черкесская республика" },
+    { name: "Петропавловск-Камчатский", lat: 53.0452, lng: 158.6511, region: "Камчатский край" }
+  ],
+
+  // ── Источники геоданных ───────────────────────────────────
+  worldGeoUrl:  "https://cdn.jsdelivr.net/npm/world-atlas@2/countries-50m.json",
+  russiaGeoUrl: "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/russia.geojson",
+
+  // ── Маппинги стран ────────────────────────────────────────
+  A2N: {
+    AF:"4",AX:"248",AL:"8",DZ:"12",AS:"16",AD:"20",AO:"24",AI:"660",AQ:"10",
+    AG:"28",AR:"32",AM:"51",AW:"533",AU:"36",AT:"40",AZ:"31",BS:"44",BH:"48",
+    BD:"50",BB:"52",BY:"112",BE:"56",BZ:"84",BJ:"204",BM:"60",BT:"64",BO:"68",
+    BQ:"535",BA:"70",BW:"72",BV:"74",BR:"76",IO:"86",BN:"96",BG:"100",BF:"854",
+    BI:"108",CV:"132",KH:"116",CM:"120",CA:"124",KY:"136",CF:"140",TD:"148",
+    CL:"152",CN:"156",CX:"162",CC:"166",CO:"170",KM:"174",CG:"178",CD:"180",
+    CK:"184",CR:"188",CI:"384",HR:"191",CU:"192",CW:"531",CY:"196",CZ:"203",
+    DK:"208",DJ:"262",DM:"212",DO:"214",EC:"218",EG:"818",SV:"222",GQ:"226",
+    ER:"232",EE:"233",SZ:"748",ET:"231",FK:"238",FO:"234",FJ:"242",FI:"246",
+    FR:"250",GF:"254",PF:"258",TF:"260",GA:"266",GM:"270",GE:"268",DE:"276",
+    GH:"288",GI:"292",GR:"300",GL:"304",GD:"308",GP:"312",GU:"316",GT:"320",
+    GG:"831",GN:"324",GW:"624",GY:"328",HT:"332",HM:"334",VA:"336",HN:"340",
+    HK:"344",HU:"348",IS:"352",IN:"356",ID:"360",IR:"364",IQ:"368",IE:"372",
+    IM:"833",IL:"376",IT:"380",JM:"388",JP:"392",JE:"832",JO:"400",KZ:"398",
+    KE:"404",KI:"296",KP:"408",KR:"410",KW:"414",KG:"417",LA:"418",LV:"428",
+    LB:"422",LS:"426",LR:"430",LY:"434",LI:"438",LT:"440",LU:"442",MO:"446",
+    MG:"450",MW:"454",MY:"458",MV:"462",ML:"466",MT:"470",MH:"584",MQ:"474",
+    MR:"478",MU:"480",YT:"175",MX:"484",FM:"583",MD:"498",MC:"492",MN:"496",
+    ME:"499",MS:"500",MA:"504",MZ:"508",MM:"104",NA:"516",NR:"520",NP:"524",
+    NL:"528",NC:"540",NZ:"554",NI:"558",NE:"562",NG:"566",NU:"570",NF:"574",
+    MK:"807",MP:"580",NO:"578",OM:"512",PK:"586",PW:"585",PS:"275",PA:"591",
+    PG:"598",PY:"600",PE:"604",PH:"608",PN:"612",PL:"616",PT:"620",PR:"630",
+    QA:"634",RE:"638",RO:"642",RU:"643",RW:"646",BL:"652",SH:"654",KN:"659",
+    LC:"662",MF:"663",PM:"666",VC:"670",WS:"882",SM:"674",ST:"678",SA:"682",
+    SN:"686",RS:"688",SC:"690",SL:"694",SG:"702",SX:"534",SK:"703",SI:"705",
+    SB:"90",SO:"706",ZA:"710",GS:"239",SS:"728",ES:"724",LK:"144",SD:"729",
+    SR:"740",SJ:"744",SE:"752",CH:"756",SY:"760",TW:"158",TJ:"762",TZ:"834",
+    TH:"764",TL:"626",TG:"768",TK:"772",TO:"776",TT:"780",TN:"788",TR:"792",
+    TM:"795",TC:"796",TV:"798",UG:"800",UA:"804",AE:"784",GB:"826",US:"840",
+    UM:"581",UY:"858",UZ:"860",VU:"548",VE:"862",VN:"704",VG:"92",VI:"850",
+    WF:"876",EH:"732",YE:"887",ZM:"894",ZW:"716",XK:"383"
+  },
+
+  N2A: {
+    "4":"Afghanistan","8":"Albania","12":"Algeria","20":"Andorra","24":"Angola",
+    "28":"Antigua and Barbuda","32":"Argentina","36":"Australia","40":"Austria",
+    "31":"Azerbaijan","44":"Bahamas","48":"Bahrain","50":"Bangladesh","52":"Barbados",
+    "112":"Belarus","56":"Belgium","84":"Belize","204":"Benin","64":"Bhutan","68":"Bolivia",
+    "70":"Bosnia and Herzegovina","72":"Botswana","76":"Brazil","96":"Brunei","100":"Bulgaria",
+    "854":"Burkina Faso","108":"Burundi","132":"Cape Verde","116":"Cambodia","120":"Cameroon",
+    "124":"Canada","140":"Central African Rep.","148":"Chad","152":"Chile","156":"China",
+    "170":"Colombia","174":"Comoros","178":"Congo","180":"DR Congo","188":"Costa Rica",
+    "384":"Ivory Coast","191":"Croatia","192":"Cuba","196":"Cyprus","203":"Czech Republic",
+    "208":"Denmark","262":"Djibouti","214":"Dominican Republic","218":"Ecuador",
+    "818":"Egypt","222":"El Salvador","226":"Equatorial Guinea","232":"Eritrea",
+    "233":"Estonia","748":"Eswatini","231":"Ethiopia","242":"Fiji","246":"Finland",
+    "250":"France","266":"Gabon","270":"Gambia","268":"Georgia","276":"Germany",
+    "288":"Ghana","300":"Greece","304":"Greenland","308":"Grenada","320":"Guatemala",
+    "324":"Guinea","624":"Guinea-Bissau","328":"Guyana","332":"Haiti","340":"Honduras",
+    "348":"Hungary","352":"Iceland","356":"India","360":"Indonesia","364":"Iran",
+    "368":"Iraq","372":"Ireland","376":"Israel","380":"Italy","388":"Jamaica",
+    "392":"Japan","400":"Jordan","398":"Kazakhstan","404":"Kenya","408":"North Korea",
+    "410":"South Korea","414":"Kuwait","417":"Kyrgyzstan","418":"Laos","428":"Latvia",
+    "422":"Lebanon","426":"Lesotho","430":"Liberia","434":"Libya","440":"Lithuania",
+    "442":"Luxembourg","450":"Madagascar","454":"Malawi","458":"Malaysia","462":"Maldives",
+    "466":"Mali","470":"Malta","478":"Mauritania","480":"Mauritius","484":"Mexico",
+    "498":"Moldova","496":"Mongolia","499":"Montenegro","504":"Morocco","508":"Mozambique",
+    "104":"Myanmar","516":"Namibia","524":"Nepal","528":"Netherlands","554":"New Zealand",
+    "558":"Nicaragua","562":"Niger","566":"Nigeria","807":"North Macedonia","578":"Norway",
+    "512":"Oman","586":"Pakistan","275":"Palestine","591":"Panama","598":"Papua New Guinea",
+    "600":"Paraguay","604":"Peru","608":"Philippines","616":"Poland","620":"Portugal",
+    "634":"Qatar","642":"Romania","643":"Russia","646":"Rwanda","682":"Saudi Arabia",
+    "686":"Senegal","688":"Serbia","690":"Seychelles","694":"Sierra Leone","702":"Singapore",
+    "703":"Slovakia","705":"Slovenia","90":"Solomon Islands","706":"Somalia",
+    "710":"South Africa","728":"South Sudan","724":"Spain","144":"Sri Lanka",
+    "729":"Sudan","740":"Suriname","752":"Sweden","756":"Switzerland","760":"Syria",
+    "762":"Tajikistan","834":"Tanzania","764":"Thailand","626":"Timor-Leste","768":"Togo",
+    "780":"Trinidad and Tobago","788":"Tunisia","792":"Turkey","795":"Turkmenistan",
+    "800":"Uganda","804":"Ukraine","784":"United Arab Emirates","826":"United Kingdom",
+    "840":"United States","858":"Uruguay","860":"Uzbekistan","548":"Vanuatu",
+    "862":"Venezuela","704":"Vietnam","887":"Yemen","894":"Zambia","716":"Zimbabwe",
+    "732":"Western Sahara","158":"Taiwan","383":"Kosovo","51":"Armenia"
+  },
+
+  // Центроиды для стран без полигонов в датасете 50m
+  CENTROIDS: {
+    CY:[34.9,33.0], ME:[42.7,19.4], LK:[7.9,80.7], SG:[1.3,103.8],
+    BH:[26.0,50.5], MT:[35.9,14.5], MV:[3.2,73.2], MU:[-20.3,57.6],
+    LI:[47.1,9.5],  SM:[43.9,12.5], MC:[43.7,7.4],  AD:[42.5,1.5],
+    BB:[13.2,-59.6], SC:[-4.7,55.5], KN:[17.3,-62.7], LC:[13.9,-61.0],
+    VC:[13.3,-61.2], GD:[12.1,-61.7], DM:[15.4,-61.4], AG:[17.1,-61.8],
+    TO:[-21.2,-175.2], TV:[-8.5,179.2], NR:[-0.5,166.9], PW:[7.5,134.6],
+    MH:[7.1,171.2], KI:[1.9,-157.4], FM:[6.9,158.2], WS:[-13.6,-172.5],
+    SB:[-9.6,160.2], VU:[-15.4,166.9],
+  },
+};
